@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIRE Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --ink: #1a1a18;
+    --ink2: #3d3d38;
+    --ink3: #7a7a72;
+    --paper: #f5f3ee;
+    --paper2: #eceae3;
+    --paper3: #e2dfd6;
+    --accent: #c85a2a;
+    --accent2: #e8915a;
+    --green: #2a7a4a;
+    --green-light: #e8f5ee;
+    --blue: #1a5a8a;
+    --blue-light: #e8f0f8;
+    --amber: #b87820;
+    --amber-light: #fdf3e0;
+    --border: rgba(26,26,24,0.12);
+    --border-strong: rgba(26,26,24,0.22);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; }
+  body {
+    font-family: 'Instrument Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* Header */
+  .header {
+    border-bottom: 1px solid var(--border-strong);
+    padding: 2rem 3rem;
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+    background: var(--paper);
+  }
+  .header-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .header-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--ink3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    min-height: calc(100vh - 81px);
+  }
+  .sidebar {
+    border-right: 1px solid var(--border-strong);
+    overflow-y: auto;
+    background: var(--paper2);
+  }
+  .main {
+    overflow-y: auto;
+    padding: 2rem 2.5rem;
+  }
+
+  /* Sidebar sections */
+  .s-section {
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem;
+  }
+  .s-section-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .s-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Form fields */
+  .field { margin-bottom: 1rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--ink2);
+    margin-bottom: 0.3rem;
+    font-weight: 500;
+  }
+  .field input[type="number"],
+  .field input[type="text"],
+  .field select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    background: var(--paper);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus {
+    border-color: var(--accent);
+  }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .field-hint { font-size: 0.7rem; color: var(--ink3); margin-top: 0.2rem; }
+
+  /* Account rows */
+  .account-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.6rem;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+  }
+  .account-row input {
+    border: none;
+    background: transparent;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--ink);
+    outline: none;
+    width: 100%;
+  }
+  .account-row .acct-label { font-size: 0.75rem; color: var(--ink2); font-weight: 500; }
+  .account-row .acct-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--ink);
+    text-align: right;
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 90px;
+  }
+  .acct-type {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .type-roth { background: var(--blue-light); color: var(--blue); }
+  .type-trad { background: var(--amber-light); color: var(--amber); }
+  .type-hsa { background: var(--green-light); color: var(--green); }
+  .type-brok { background: #f0ede8; color: var(--ink2); }
+  .type-pension { background: #f5e8f0; color: #7a2a5a; }
+
+  /* Calc button */
+  .calc-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 0.5rem;
+    letter-spacing: 0.01em;
+  }
+  .calc-btn:hover { background: #b54e22; }
+  .calc-btn:active { transform: scale(0.99); }
+
+  /* Main — metric cards */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .metric-card {
+    background: var(--paper);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 10px 10px 0 0;
+  }
+  .mc-fire::before { background: var(--accent); }
+  .mc-age::before { background: var(--green); }
+  .mc-years::before { background: var(--blue); }
+  .mc-rate::before { background: var(--amber); }
+  .mc-gap::before { background: var(--ink3); }
+  .metric-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink3);
+    margin-bottom: 0.4rem;
+  }
+  .metric-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.75rem;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .metric-sub {
+    font-size: 0.7rem;
+    color: var(--ink3);
+    margin-top: 0.25rem;
+  }
+
+  /* Alert */
+  .alert-box {
+    border-radius: 8px;
+    padding: 0.875rem 1rem;
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+    border-left: 3px solid;
+    line-height: 1.5;
+  }
+  .alert-good { background: var(--green-light); border-color: var(--green); color: #1a4a2a; }
+  .alert-warn { background: var(--amber-light); border-color: var(--amber); color: #5a3a08; }
+  .alert-info { background: var(--blue-light); border-color: var(--blue); color: #0a2a4a; }
+
+  /* Charts */
+  .chart-section { margin-bottom: 2rem; }
+  .chart-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    color: var(--ink);
+    margin-bottom: 0.25rem;
+  }
+  .chart-sub { font-size: 0.78rem; color: var(--ink3); margin-bottom: 1rem; }
+  .chart-wrap {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+  .chart-canvas-wrap { position: relative; width: 100%; height: 280px; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 0.875rem;
+    font-size: 0.75rem;
+    color: var(--ink3);
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* Timeline */
+  .timeline {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .tl-phase {
+    padding: 1rem 1.25rem;
+    border-right: 1px solid var(--border);
+  }
+  .tl-phase:last-child { border-right: none; }
+  .tl-phase-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+  .tl-phase-ages {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.05rem;
+    margin-bottom: 0.5rem;
+  }
+  .tl-phase-desc { font-size: 0.78rem; color: var(--ink2); line-height: 1.4; }
+  .tl-source {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin: 3px 3px 0 0;
+  }
+  .ph1 { background: var(--blue-light); }
+  .ph1 .tl-phase-label { color: var(--blue); }
+  .ph2 { background: var(--green-light); }
+  .ph2 .tl-phase-label { color: var(--green); }
+  .ph3 { background: var(--amber-light); }
+  .ph3 .tl-phase-label { color: var(--amber); }
+  .src-brok { background: #e8e5de; color: var(--ink2); }
+  .src-roth { background: var(--blue-light); color: var(--blue); }
+  .src-all { background: var(--green-light); color: var(--green); }
+
+  /* Portfolio breakdown */
+  .breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+  .breakdown-card {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.875rem;
+  }
+  .breakdown-card .bc-label { font-size: 0.72rem; color: var(--ink3); margin-bottom: 0.2rem; }
+  .breakdown-card .bc-val {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.2rem;
+    color: var(--ink);
+  }
+  .breakdown-card .bc-pct { font-size: 0.72rem; color: var(--ink3); }
+
+  /* Recommendations */
+  .recs { margin-bottom: 2rem; }
+  .rec-item {
+    display: flex;
+    gap: 0.875rem;
+    align-items: flex-start;
+    padding: 0.875rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .rec-item:last-child { border-bottom: none; }
+  .rec-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .rec-text { font-size: 0.85rem; color: var(--ink2); line-height: 1.5; }
+  .rec-text strong { color: var(--ink); font-weight: 600; }
+
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    color: var(--ink);
+    margin-bottom: 0.25rem;
+  }
+  .section-sub { font-size: 0.78rem; color: var(--ink3); margin-bottom: 1rem; }
+
+  /* Disclaimer */
+  .disclaimer {
+    font-size: 0.72rem;
+    color: var(--ink3);
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+    margin-top: 1rem;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border-strong); }
+    .header { padding: 1.25rem 1.5rem; flex-direction: column; gap: 0.25rem; }
+    .main { padding: 1.5rem; }
+    .timeline { grid-template-columns: 1fr; }
+    .tl-phase { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <h1 class="header-title">FIRE Planner</h1>
+  <span class="header-sub">Financial Independence · Retire Early</span>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR INPUTS -->
+  <aside class="sidebar">
+
+    <div class="s-section">
+      <div class="s-section-title">Personal</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Your current age</label>
+          <input type="number" id="age" value="26" min="18" max="70">
+        </div>
+        <div class="field">
+          <label>Target retirement age</label>
+          <input type="number" id="retireAge" value="48" min="30" max="70">
+        </div>
+      </div>
+      <div class="field">
+        <label>Filing status</label>
+        <select id="filingStatus">
+          <option value="mfj">Married filing jointly</option>
+          <option value="single">Single</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="s-section">
+      <div class="s-section-title">Income &amp; Savings</div>
+      <div class="field">
+        <label>Combined gross household income / yr</label>
+        <input type="number" id="grossIncome" value="200000" step="1000">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>P1 401(k) contribution %</label>
+          <input type="number" id="p1401k" value="5" min="0" max="100" step="0.5">
+          <div class="field-hint">Has employer match</div>
+        </div>
+        <div class="field">
+          <label>P1 employer match %</label>
+          <input type="number" id="p1Match" value="3" min="0" max="20" step="0.5">
+        </div>
+      </div>
+      <div class="field">
+        <label>P2 401(k) contribution % (no match)</label>
+        <input type="number" id="p2401k" value="11" min="0" max="100" step="0.5">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Roth IRA contributions / yr (combined)</label>
+          <input type="number" id="rothContrib" value="14000" step="500">
+          <div class="field-hint">Max $7,000/person</div>
+        </div>
+        <div class="field">
+          <label>HSA contribution / yr</label>
+          <input type="number" id="hsaContrib" value="8300" step="100">
+          <div class="field-hint">Max $8,300 family</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Extra monthly brokerage contribution</label>
+        <input type="number" id="brokMonthly" value="1000" step="100">
+        <div class="field-hint">Amount beyond retirement accounts</div>
+      </div>
+    </div>
+
+    <div class="s-section">
+      <div class="s-section-title">Current Accounts</div>
+      <div class="account-row">
+        <span class="acct-label">P1 401(k)</span>
+        <span class="acct-type type-trad">Traditional</span>
+        <input class="acct-val" type="number" id="a-p1401k" value="52362" step="100">
+      </div>
+      <div class="account-row">
+        <span class="acct-label">P1 Roth IRA</span>
+        <span class="acct-type type-roth">Roth</span>
+        <input class="acct-val" type="number" id="a-rothP1" value="38753" step="100">
+      </div>
+      <div class="account-row">
+        <span class="acct-label">P2 401(k)</span>
+        <span class="acct-type type-trad">Traditional</span>
+        <input class="acct-val" type="number" id="a-p2401k" value="4677" step="100">
+      </div>
+      <div class="account-row">
+        <span class="acct-label">P2 Roth IRA</span>
+        <span class="acct-type type-roth">Roth</span>
+        <input class="acct-val" type="number" id="a-rothP2" value="25223" step="100">
+      </div>
+      <div class="account-row">
+        <span class="acct-label">HSA</span>
+        <span class="acct-type type-hsa">HSA</span>
+        <input class="acct-val" type="number" id="a-hsa" value="8408" step="100">
+      </div>
+      <div class="account-row">
+        <span class="acct-label">Pension (Skye)</span>
+        <span class="acct-type type-pension">Pension</span>
+        <input class="acct-val" type="number" id="a-pension" value="4349" step="100">
+      </div>
+      <div class="account-row">
+        <span class="acct-label">Rollover (Inspira Trad)</span>
+        <span class="acct-type type-trad">Traditional</span>
+        <input class="acct-val" type="number" id="a-rollTrad" value="988" step="100">
+      </div>
+      <div class="account-row">
+        <span class="acct-label">Rollover (Inspira Roth)</span>
+        <span class="acct-type type-roth">Roth</span>
+        <input class="acct-val" type="number" id="a-rollRoth" value="1106" step="100">
+      </div>
+      <div class="account-row">
+        <span class="acct-label">Taxable brokerage</span>
+        <span class="acct-type type-brok">Brokerage</span>
+        <input class="acct-val" type="number" id="a-brok" value="0" step="100">
+      </div>
+    </div>
+
+    <div class="s-section">
+      <div class="s-section-title">Retirement Goals</div>
+      <div class="field">
+        <label>Annual spending in retirement (today's $)</label>
+        <input type="number" id="retireSpend" value="87500" step="1000">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Withdrawal rate %</label>
+          <input type="number" id="withdrawRate" value="3.5" min="2" max="5" step="0.25">
+          <div class="field-hint">3–3.5% safer for early retirement</div>
+        </div>
+        <div class="field">
+          <label>Expected annual return %</label>
+          <input type="number" id="annualReturn" value="7" min="3" max="12" step="0.5">
+          <div class="field-hint">Real (after inflation)</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Expected inflation %</label>
+        <input type="number" id="inflation" value="3" min="1" max="6" step="0.25">
+        <div class="field-hint">Used to adjust your spending target over time</div>
+      </div>
+    </div>
+
+    <div class="s-section">
+      <div class="s-section-title">Housing</div>
+      <div class="field">
+        <label>Planning to buy a home?</label>
+        <select id="buyHome">
+          <option value="yes">Yes</option>
+          <option value="no">No, staying renting</option>
+        </select>
+      </div>
+      <div id="home-fields">
+        <div class="field-row">
+          <div class="field">
+            <label>Expected home price</label>
+            <input type="number" id="homePrice" value="700000" step="10000">
+          </div>
+          <div class="field">
+            <label>Years until purchase</label>
+            <input type="number" id="homeYears" value="3" min="0" max="20">
+          </div>
+        </div>
+        <div class="field">
+          <label>Down payment %</label>
+          <input type="number" id="downPct" value="20" min="3" max="100" step="1">
+        </div>
+      </div>
+    </div>
+
+    <div class="s-section">
+      <button class="calc-btn" onclick="runCalc()">Calculate my FIRE plan</button>
+    </div>
+
+  </aside>
+
+  <!-- MAIN RESULTS -->
+  <main class="main" id="results">
+    <div style="display:flex;align-items:center;justify-content:center;height:300px;color:var(--ink3);font-size:0.9rem;text-align:center">
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--ink2);margin-bottom:0.5rem">Enter your details</div>
+        Fill in the inputs on the left and click<br><strong style="color:var(--accent)">Calculate my FIRE plan</strong> to see your analysis.
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+function fmtM(n) {
+  if (n >= 1000000) return '$' + (n/1000000).toFixed(2) + 'M';
+  if (n >= 1000) return '$' + Math.round(n/1000) + 'K';
+  return fmt(n);
+}
+function pct(n) { return (n*100).toFixed(1) + '%'; }
+function g(id) { return parseFloat(document.getElementById(id).value) || 0; }
+function gs(id) { return document.getElementById(id).value; }
+
+document.getElementById('buyHome').addEventListener('change', function() {
+  document.getElementById('home-fields').style.display = this.value === 'yes' ? 'block' : 'none';
+});
+
+let growthChart = null, mixChart = null;
+
+function runCalc() {
+  const age = g('age');
+  const retireAge = g('retireAge');
+  const grossIncome = g('grossIncome');
+  const p1_401k_pct = g('p1401k') / 100;
+  const p1_match_pct = g('p1Match') / 100;
+  const p2_401k_pct = g('p2401k') / 100;
+  const rothAnnual = g('rothContrib');
+  const hsaAnnual = g('hsaContrib');
+  const brokMonthly = g('brokMonthly');
+  const retireSpend = g('retireSpend');
+  const wr = g('withdrawRate') / 100;
+  const annualReturn = g('annualReturn') / 100;
+  const inflation = g('inflation') / 100;
+  const buyHome = gs('buyHome') === 'yes';
+  const homePrice = g('homePrice');
+  const homeYears = g('homeYears');
+  const downPct = g('downPct') / 100;
+
+  // Current accounts
+  const cur_p1_401k = g('a-p1401k');
+  const cur_roth_p1 = g('a-rothP1');
+  const cur_p2_401k = g('a-p2401k');
+  const cur_roth_p2 = g('a-rothP2');
+  const cur_hsa = g('a-hsa');
+  const cur_pension = g('a-pension');
+  const cur_roll_trad = g('a-rollTrad');
+  const cur_roll_roth = g('a-rollRoth');
+  const cur_brok = g('a-brok');
+
+  const totalCurrent = cur_p1_401k + cur_roth_p1 + cur_p2_401k + cur_roth_p2 + cur_hsa + cur_pension + cur_roll_trad + cur_roll_roth + cur_brok;
+
+  // Monthly contributions
+  const p1_401k_monthly = (grossIncome * p1_401k_pct) / 12;
+  const p1_match_monthly = (grossIncome * Math.min(p1_match_pct, p1_401k_pct)) / 12;
+  const p2_401k_monthly = (grossIncome * p2_401k_pct) / 12;
+  const roth_monthly = rothAnnual / 12;
+  const hsa_monthly = hsaAnnual / 12;
+
+  const downPayment = buyHome ? homePrice * downPct : 0;
+  let homeHit = false;
+
+  // FIRE number (inflation-adjusted spending at retirement)
+  const yearsToRetire = retireAge - age;
+  const inflatedSpend = retireSpend * Math.pow(1 + inflation, yearsToRetire);
+  const fireNumber = inflatedSpend / wr;
+
+  // Monthly return
+  const mr = annualReturn / 12;
+
+  // Simulate year by year
+  let port_401k = cur_p1_401k + cur_p2_401k + cur_roll_trad + cur_pension;
+  let port_roth = cur_roth_p1 + cur_roth_p2 + cur_roll_roth;
+  let port_hsa = cur_hsa;
+  let port_brok = cur_brok;
+
+  const labels = [], vals_total = [], vals_401k = [], vals_roth = [], vals_hsa = [], vals_brok = [], fireVals = [];
+  let fireReachedAge = null;
+
+  for (let yr = 0; yr <= 40; yr++) {
+    const curAge = age + yr;
+    const total = port_401k + port_roth + port_hsa + port_brok;
+    labels.push('Age ' + curAge);
+    vals_total.push(Math.round(total));
+    vals_401k.push(Math.round(port_401k));
+    vals_roth.push(Math.round(port_roth));
+    vals_hsa.push(Math.round(port_hsa));
+    vals_brok.push(Math.round(port_brok));
+    fireVals.push(Math.round(fireNumber));
+
+    if (total >= fireNumber && fireReachedAge === null) fireReachedAge = curAge;
+
+    for (let m = 0; m < 12; m++) {
+      // Home down payment event
+      if (buyHome && !homeHit && yr === homeYears && m === 0) {
+        port_brok = Math.max(0, port_brok - downPayment);
+        homeHit = true;
+      }
+
+      port_401k = port_401k * (1 + mr) + p1_401k_monthly + p1_match_monthly + p2_401k_monthly;
+      port_roth = port_roth * (1 + mr) + roth_monthly;
+      port_hsa = port_hsa * (1 + mr) + hsa_monthly;
+      port_brok = port_brok * (1 + mr) + brokMonthly;
+    }
+  }
+
+  // Savings rate
+  const totalAnnualContrib = (p1_401k_monthly + p1_match_monthly + p2_401k_monthly + roth_monthly + hsa_monthly + brokMonthly) * 12;
+  const savingsRate = totalAnnualContrib / grossIncome;
+
+  // Phase 1 bridge need (brokerage + Roth contributions cover ages retireAge to 59)
+  const phase1Dur = Math.max(0, 59 - retireAge);
+  const phase1Need = inflatedSpend * phase1Dur;
+
+  // Current brokerage + Roth contributions projected at retirement
+  const brokAtRetire = vals_brok[Math.min(yearsToRetire, 40)];
+  const rothAtRetire = vals_roth[Math.min(yearsToRetire, 40)];
+
+  // Tax bracket estimate (MFJ 2026 approx)
+  const taxableIncome = grossIncome - (p1_401k_monthly + p2_401k_monthly) * 12 - 14600; // standard deduction approx
+  let bracket = '22%';
+  if (taxableIncome > 731200) bracket = '37%';
+  else if (taxableIncome > 487450) bracket = '35%';
+  else if (taxableIncome > 383900) bracket = '32%';
+  else if (taxableIncome > 201050) bracket = '24%';
+  else if (taxableIncome > 94050) bracket = '22%';
+  else if (taxableIncome > 23200) bracket = '12%';
+  else bracket = '10%';
+
+  // Recommendations
+  const recs = [];
+  if (p1_401k_pct < p1_match_pct) recs.push({ text: `<strong>Increase P1's 401(k) to at least ${(p1_match_pct*100).toFixed(0)}%</strong> to capture the full employer match — that's free money you're leaving on the table.` });
+  if (rothAnnual < 14000) recs.push({ text: `<strong>Both Roth IRAs are not fully maxed.</strong> You can contribute up to $14,000/year combined (2026). Consider increasing to the limit — Roth contributions can be withdrawn penalty-free anytime.` });
+  if (p2_401k_pct > 0.08 && retireAge < 55) recs.push({ text: `<strong>Consider reducing P2's 401(k) from ${(p2_401k_pct*100).toFixed(0)}% to ~6–8%</strong> and redirecting the difference to your taxable brokerage. With no employer match and a before-55 goal, brokerage flexibility is more valuable.` });
+  if (brokMonthly < 1500 && retireAge < 50) recs.push({ text: `<strong>Your brokerage contributions may be too low</strong> for a before-50 retirement. You'll need ${fmtM(phase1Need)} in flexible accounts to cover ages ${retireAge}–59. Try increasing monthly brokerage contributions.` });
+  if (buyHome) recs.push({ text: `<strong>The home purchase will draw ${fmtM(downPayment)}</strong> from your brokerage in year ${homeYears}. Factor this into your bridge calculations and adjust contributions accordingly.` });
+  if (cur_hsa > 0) recs.push({ text: `<strong>Keep investing your HSA</strong> rather than spending it on medical bills now. Pay out-of-pocket and save receipts. The HSA becomes a powerful stealth retirement account — triple tax-advantaged with no expiry on reimbursements.` });
+  if (fireReachedAge && fireReachedAge <= retireAge) recs.push({ text: `<strong>You reach your FIRE number before your target retirement age.</strong> You could potentially retire at ${fireReachedAge}! Consider whether you want to keep working for extra cushion or pull the trigger.` });
+
+  // Build HTML
+  const alertClass = fireReachedAge && fireReachedAge <= retireAge ? 'alert-good' : fireReachedAge && fireReachedAge <= retireAge + 5 ? 'alert-warn' : 'alert-warn';
+  const alertMsg = fireReachedAge
+    ? fireReachedAge <= retireAge
+      ? `Your portfolio reaches your FIRE number (${fmtM(fireNumber)}) at age ${fireReachedAge} — ${retireAge - fireReachedAge >= 0 ? (retireAge - fireReachedAge) + ' years before your target' : 'right on track'}. Your plan is working.`
+      : `At current contributions, you reach your FIRE number at age ${fireReachedAge} — ${fireReachedAge - retireAge} years after your target of ${retireAge}. Consider increasing contributions or adjusting your target.`
+    : `Your FIRE number is ${fmtM(fireNumber)}. At current contributions you don't reach it within 40 years. Significantly increase contributions or reduce target spending.`;
+
+  const html = `
+    <div class="metrics-grid">
+      <div class="metric-card mc-fire">
+        <div class="metric-label">FIRE number</div>
+        <div class="metric-value">${fmtM(fireNumber)}</div>
+        <div class="metric-sub">at ${(wr*100).toFixed(2)}% withdrawal · inflation-adjusted</div>
+      </div>
+      <div class="metric-card mc-age">
+        <div class="metric-label">Projected FIRE age</div>
+        <div class="metric-value">${fireReachedAge ? 'Age ' + fireReachedAge : '>66'}</div>
+        <div class="metric-sub">target is age ${retireAge}</div>
+      </div>
+      <div class="metric-card mc-years">
+        <div class="metric-label">Years to FIRE</div>
+        <div class="metric-value">${fireReachedAge ? (fireReachedAge - age) + ' yrs' : '40+ yrs'}</div>
+        <div class="metric-sub">from current age ${age}</div>
+      </div>
+      <div class="metric-card mc-rate">
+        <div class="metric-label">Savings rate</div>
+        <div class="metric-value">${pct(savingsRate)}</div>
+        <div class="metric-sub">of gross income · est. tax bracket ${bracket}</div>
+      </div>
+      <div class="metric-card mc-gap">
+        <div class="metric-label">Phase 1 bridge needed</div>
+        <div class="metric-value">${fmtM(phase1Need)}</div>
+        <div class="metric-sub">ages ${retireAge}–59 · ${phase1Dur} years</div>
+      </div>
+    </div>
+
+    <div class="alert-box ${alertClass}">${alertMsg}</div>
+
+    <div class="section-title" style="margin-bottom:0.25rem">Portfolio breakdown today</div>
+    <div class="section-sub">Total: ${fmtM(totalCurrent)}</div>
+    <div class="breakdown-grid">
+      <div class="breakdown-card"><div class="bc-label">Traditional / pre-tax</div><div class="bc-val">${fmtM(cur_p1_401k + cur_p2_401k + cur_roll_trad + cur_pension)}</div><div class="bc-pct">${pct((cur_p1_401k + cur_p2_401k + cur_roll_trad + cur_pension)/totalCurrent)} of portfolio</div></div>
+      <div class="breakdown-card"><div class="bc-label">Roth accounts</div><div class="bc-val">${fmtM(cur_roth_p1 + cur_roth_p2 + cur_roll_roth)}</div><div class="bc-pct">${pct((cur_roth_p1 + cur_roth_p2 + cur_roll_roth)/totalCurrent)} of portfolio</div></div>
+      <div class="breakdown-card"><div class="bc-label">HSA</div><div class="bc-val">${fmtM(cur_hsa)}</div><div class="bc-pct">${pct(cur_hsa/totalCurrent)} of portfolio</div></div>
+      <div class="breakdown-card"><div class="bc-label">Taxable brokerage</div><div class="bc-val">${fmtM(cur_brok)}</div><div class="bc-pct">${pct(cur_brok/totalCurrent || 0)} of portfolio</div></div>
+    </div>
+
+    <div class="chart-section">
+      <div class="chart-title">Portfolio growth projection</div>
+      <div class="chart-sub">Assumes ${(annualReturn*100).toFixed(1)}% real annual return · all current contributions continue · ${buyHome ? 'home purchase in yr ' + homeYears : 'no home purchase'}</div>
+      <div class="chart-wrap">
+        <div class="chart-canvas-wrap">
+          <canvas id="growthCanvas" role="img" aria-label="Stacked area chart of portfolio growth over time by account type">Portfolio growth by account type toward FIRE goal.</canvas>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#1a5a8a"></span>401(k) / Traditional</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#5a9ad4"></span>Roth accounts</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#2a7a4a"></span>HSA</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#b8a070"></span>Taxable brokerage</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#c85a2a;border:1px dashed #c85a2a;background:transparent"></span>FIRE number</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-bottom:0.75rem">Retirement income phases</div>
+    <div class="timeline" style="margin-bottom:2rem">
+      <div class="tl-phase ph1">
+        <div class="tl-phase-label">Phase 1 · early retirement</div>
+        <div class="tl-phase-ages">Ages ${retireAge}–59</div>
+        <div class="tl-phase-desc">Draw from flexible accounts only. 401(k) is locked.</div>
+        <div style="margin-top:0.5rem">
+          <span class="tl-source src-brok">Brokerage</span>
+          <span class="tl-source src-roth">Roth contributions</span>
+          <span class="tl-source src-roth" style="background:var(--green-light);color:var(--green)">HSA</span>
+        </div>
+      </div>
+      <div class="tl-phase ph2">
+        <div class="tl-phase-label">Phase 2 · Roth ladder</div>
+        <div class="tl-phase-ages">Ages 59–65</div>
+        <div class="tl-phase-desc">Full Roth access + 401(k) conversions available penalty-free.</div>
+        <div style="margin-top:0.5rem">
+          <span class="tl-source src-roth">Roth (all)</span>
+          <span class="tl-source src-brok">401(k) ladder</span>
+        </div>
+      </div>
+      <div class="tl-phase ph3">
+        <div class="tl-phase-label">Phase 3 · full access</div>
+        <div class="tl-phase-ages">Ages 65+</div>
+        <div class="tl-phase-desc">All accounts available. Medicare eligible. Social Security starts.</div>
+        <div style="margin-top:0.5rem">
+          <span class="tl-source src-all">All accounts</span>
+          <span class="tl-source" style="background:var(--amber-light);color:var(--amber)">Social Security</span>
+        </div>
+      </div>
+    </div>
+
+    ${recs.length > 0 ? `
+    <div class="section-title" style="margin-bottom:0.25rem">Personalized recommendations</div>
+    <div class="section-sub">Based on your inputs and FIRE goals</div>
+    <div class="recs">
+      ${recs.map((r, i) => `<div class="rec-item"><div class="rec-num">${i+1}</div><div class="rec-text">${r.text}</div></div>`).join('')}
+    </div>` : ''}
+
+    <div class="disclaimer">
+      This tool is for educational and illustrative purposes only. It is not financial advice. Projections assume constant returns and do not account for sequence of returns risk, tax law changes, market volatility, or other real-world factors. Consult a fee-only, fiduciary financial advisor (CFP) before making major financial decisions. Find one at <strong>napfa.org</strong>.
+    </div>
+  `;
+
+  document.getElementById('results').innerHTML = html;
+
+  // Draw chart
+  const ctx = document.getElementById('growthCanvas').getContext('2d');
+  if (growthChart) growthChart.destroy();
+  growthChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'FIRE number', data: fireVals, borderColor: '#c85a2a', borderDash: [6,4], fill: false, tension: 0, pointRadius: 0, borderWidth: 1.5, order: 0 },
+        { label: 'Brokerage', data: vals_brok, borderColor: '#b8a070', backgroundColor: 'rgba(184,160,112,0.15)', fill: 'origin', tension: 0.3, pointRadius: 0, borderWidth: 1.5, order: 4 },
+        { label: 'HSA', data: vals_hsa, borderColor: '#2a7a4a', backgroundColor: 'rgba(42,122,74,0.15)', fill: 'origin', tension: 0.3, pointRadius: 0, borderWidth: 1.5, order: 3 },
+        { label: 'Roth', data: vals_roth, borderColor: '#5a9ad4', backgroundColor: 'rgba(90,154,212,0.18)', fill: 'origin', tension: 0.3, pointRadius: 0, borderWidth: 1.5, order: 2 },
+        { label: '401(k)', data: vals_401k, borderColor: '#1a5a8a', backgroundColor: 'rgba(26,90,138,0.18)', fill: 'origin', tension: 0.3, pointRadius: 0, borderWidth: 1.5, order: 1 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (c) => c.dataset.label + ': $' + Math.round(c.raw).toLocaleString() } }
+      },
+      scales: {
+        x: { ticks: { maxTicksLimit: 8, font: { size: 11 }, color: '#7a7a72' }, grid: { display: false } },
+        y: { ticks: { callback: (v) => v >= 1000000 ? '$' + (v/1000000).toFixed(1) + 'M' : '$' + (v/1000).toFixed(0) + 'K', font: { size: 11 }, color: '#7a7a72' }, grid: { color: 'rgba(26,26,24,0.06)' } }
+      }
+    }
+  });
+}
+
+// Run on load with defaults
+window.addEventListener('load', runCalc);
+</script>
+</body>
+</html>
